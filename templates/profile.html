@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>个人资料</h3>
+<p>用户名：{{ current_user.username }}</p>
+<p>球队：{{ current_user.team_name or '-' }}</p>
+<p>联系人：{{ current_user.contact or '-' }}</p>
+<p>电话：{{ current_user.phone or '-' }}</p>
+{% endblock %}

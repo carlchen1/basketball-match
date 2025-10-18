@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: basketball-match
+    name: basketball-match-auth
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"

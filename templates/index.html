@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>约球大厅</h2>
+  {% if current_user.is_authenticated %}
+    <a class="btn btn-primary" href="{{ url_for('create_match') }}">发布约球</a>
+  {% else %}
+    <a class="btn btn-outline-primary" href="{{ url_for('login') }}">登录后可发布约球</a>
+  {% endif %}
+</div>
+
+{% for m in matches %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5>{{ m.team_name }} <small class="text-muted">（{{ m.location }}）</small></h5>
+      <p>发起人：{{ m.owner.username }} | 联系：{{ m.contact }} | 时间：{{ m.start_time }}</p>
+      <p>状态：
+        {% if m.status == '待约战' %}<span class="badge bg-secondary">{{ m.status }}</span>
+        {% elif m.status == '匹配中' %}<span class="badge bg-warning text-dark">{{ m.status }}</span>
+        {% elif m.status == '约战成功' %}<span class="badge bg-success">{{ m.status }}</span>
+        {% else %}<span class="badge bg-info">{{ m.status }}</span>{% endif %}
+      </p>
+      <a href="{{ url_for('match_detail', match_id=m.id) }}" class="btn btn-sm btn-outline-primary">查看详情</a>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

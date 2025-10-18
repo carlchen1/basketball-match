@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>向 {{ match.team_name }} 发起约战</h3>
+<form method="post" class="mt-3">
+  <div class="mb-3">
+    <label class="form-label">留言（可选）</label>
+    <textarea class="form-control" name="message"></textarea>
+  </div>
+  <button class="btn btn-success">提交约战</button>
+</form>
+{% endblock %}

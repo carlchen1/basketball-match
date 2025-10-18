@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>注册</h3>
+<form method="post" class="mt-3">
+  <div class="mb-3">
+    <label class="form-label">用户名</label>
+    <input class="form-control" name="username" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">密码</label>
+    <input class="form-control" name="password" type="password" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">球队名称（可选）</label>
+    <input class="form-control" name="team_name">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">联系人（可选）</label>
+    <input class="form-control" name="contact">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">联系电话（可选）</label>
+    <input class="form-control" name="phone">
+  </div>
+  <button class="btn btn-primary">注册</button>
+</form>
+{% endblock %}
