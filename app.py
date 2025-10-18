@@ -53,7 +53,16 @@ class Challenge(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
+# 在Flask 2.3.0+中，before_first_request已被弃用
+# 使用before_request并添加标志来确保只执行一次
+tables_created = False
+@app.before_request
+def create_tables():
+    global tables_created
+    if not tables_created:
+        with app.app_context():
+            db.create_all()
+        tables_created = True
 
 @app.route('/')
 def index():
@@ -199,6 +208,12 @@ def profile():
     return render_template('profile.html')
 
 if __name__ == '__main__':
-    db.create_all()  # 初始化数据库
+    print("Starting Flask application...")
+    # 手动创建数据库表
+    with app.app_context():
+        print("Creating database tables...")
+        db.create_all()
+        print("Database tables created.")
     port = int(os.environ.get('PORT', 5000))
+    print(f"Starting server on port {port}...")
     app.run(host='0.0.0.0', port=port, debug=True)
