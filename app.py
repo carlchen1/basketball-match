@@ -201,5 +201,6 @@ def profile():
     return render_template('profile.html')
 
 if __name__ == '__main__':
+    db.create_all()  # 初始化数据库
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
