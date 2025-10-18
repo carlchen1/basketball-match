@@ -5,4 +5,93 @@
 <p>球队：{{ current_user.team_name or '-' }}</p>
 <p>联系人：{{ current_user.contact or '-' }}</p>
 <p>电话：{{ current_user.phone or '-' }}</p>
+
+<hr>
+
+<h3>我发布的约球</h3>
+{% if user_matches %}
+    <div class="row row-cols-1 md:row-cols-2 gap-4 mb-4">
+    {% for match in user_matches %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ match.team_name }}</h5>
+            <div class="card-text">
+                <p><strong>时间：</strong>{{ match.start_time }}</p>
+                <p><strong>地点：</strong>{{ match.location }}</p>
+                <p><strong>联系人：</strong>{{ match.contact }}</p>
+                <p><strong>状态：</strong><span class="badge bg-{{ 
+                    'success' if match.status == '约战成功' else 
+                    'warning' if match.status == '匹配中' else 'secondary' 
+                }}">{{ match.status }}</span></p>
+            </div>
+            <div class="mt-2">
+                <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-sm btn-primary">查看详情</a>
+            </div>
+        </div>
+        
+        <!-- 显示该约球的挑战信息 -->
+        {% if match.challenges %}
+        <div class="card-footer bg-light">
+            <p class="text-sm mb-1">收到的挑战：</p>
+            {% for challenge in match.challenges %}
+            <div class="d-flex justify-content-between align-items-center mb-1 p-2 bg-white rounded">
+                <div>
+                    <span class="font-medium">{{ challenge.challenger.username }}</span>
+                    {% if challenge.message %}
+                    <small class="text-muted d-block">{{ challenge.message }}</small>
+                    {% endif %}
+                </div>
+                <div>
+                    {% if challenge.status == '待确认' %}
+                    <form method="post" action="{{ url_for('confirm_challenge', challenge_id=challenge.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-success me-1">同意</button>
+                    </form>
+                    <form method="post" action="{{ url_for('reject_challenge', challenge_id=challenge.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-danger">拒绝</button>
+                    </form>
+                    {% else %}
+                    <span class="badge bg-{{ 
+                        'success' if challenge.status == '已同意' else 
+                        'danger' if challenge.status == '已拒绝' else 'secondary' 
+                    }}">{{ challenge.status }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">您还没有发布任何约球信息</div>
+{% endif %}
+
+{% if challenges_received %}
+<hr>
+<h3>待处理的挑战请求</h3>
+<div class="list-group">
+    {% for challenge in challenges_received %}
+    <div class="list-group-item">
+        <div class="d-flex justify-content-between">
+            <div>
+                <h6>{{ challenge.challenger.username }} 挑战您的约球</h6>
+                <p class="text-sm text-muted">约球：{{ challenge.match.team_name }} - {{ challenge.match.location }}</p>
+                {% if challenge.message %}
+                <p class="text-sm">{{ challenge.message }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <form method="post" action="{{ url_for('confirm_challenge', challenge_id=challenge.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-success me-1">同意</button>
+                </form>
+                <form method="post" action="{{ url_for('reject_challenge', challenge_id=challenge.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-danger">拒绝</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

@@ -205,7 +205,15 @@ def reject_challenge(challenge_id):
 @app.route('/profile')
 @login_required
 def profile():
-    return render_template('profile.html')
+    # 查询用户发布的所有约球信息
+    user_matches = Match.query.filter_by(owner_id=current_user.id).order_by(Match.created_at.desc()).all()
+    # 查询用户收到的挑战请求
+    challenges_received = []
+    for match in user_matches:
+        for challenge in match.challenges:
+            if challenge.status == '待确认':
+                challenges_received.append(challenge)
+    return render_template('profile.html', user_matches=user_matches, challenges_received=challenges_received)
 
 if __name__ == '__main__':
     print("Starting Flask application...")
