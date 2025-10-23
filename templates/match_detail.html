@@ -1,55 +1,91 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="d-flex justify-content-between">
-  <div>
-    <h3>{{ match.team_name }}</h3>
-    <p>发起人：{{ match.owner.username }} 联系：{{ match.contact }} 时间：{{ match.start_time }} 场地：{{ match.location }}</p>
-    <p>状态：<strong>{{ match.status }}</strong></p>
-  </div>
-  <div>
+<div class="card mb-4 shadow-sm">
+  <div class="card-body p-4">
+    <h3 class="card-title text-center mb-4">{{ match.team_name }}</h3>
+    
     {% if current_user.is_authenticated and current_user.id == match.owner_id %}
-      <small class="text-muted">这是你发起的约球</small>
+      <div class="alert alert-info mb-4 text-center">
+        <strong>这是你发起的约球</strong>
+      </div>
     {% endif %}
+    
+    <div class="mb-4">
+      <div class="mb-2"><strong>发起人：</strong>{{ match.owner.username }}</div>
+      <div class="mb-2"><strong>联系方式：</strong>{{ match.contact }}</div>
+      <div class="mb-2"><strong>时间：</strong>{{ match.start_time }}</div>
+      <div class="mb-2"><strong>场地：</strong>{{ match.location }}</div>
+    </div>
+    
+    <div class="text-center mb-4">
+      <strong>状态：</strong>
+      {% if match.status == '待约战' %}<span class="badge bg-secondary p-2">{{ match.status }}</span>
+      {% elif match.status == '匹配中' %}<span class="badge bg-warning text-dark p-2">{{ match.status }}</span>
+      {% elif match.status == '约战成功' %}<span class="badge bg-success p-2">{{ match.status }}</span>
+      {% else %}<span class="badge bg-info p-2">{{ match.status }}</span>{% endif %}
+    </div>
   </div>
 </div>
 
-<hr>
-<h5>约战列表</h5>
+<h5 class="text-center mb-4">约战列表</h5>
 {% if match.challenges %}
-  <ul class="list-group">
+  <div class="list-group">
     {% for c in match.challenges %}
-      <li class="list-group-item d-flex justify-content-between align-items-start">
-        <div>
-          <strong>{{ c.challenger.username }}</strong> {{ '（' + (c.challenger.team_name or '') + '）' }}
-          <div class="text-muted small">{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-          {% if c.message %}<div class="mt-2">留言：{{ c.message }}</div>{% endif %}
-        </div>
-        <div>
-          {% if match.owner_id == current_user.get_id()|int %}
-            {% if c.status == '待确认' %}
-              <form method="post" action="{{ url_for('confirm_challenge', challenge_id=c.id) }}" style="display:inline;">
-                <button class="btn btn-sm btn-success">同意</button>
-              </form>
-              <form method="post" action="{{ url_for('reject_challenge', challenge_id=c.id) }}" style="display:inline;">
-                <button class="btn btn-sm btn-outline-secondary">拒绝</button>
-              </form>
-            {% elif c.status == '已同意' %}
-              <span class="badge bg-success">已同意</span>
-            {% else %}
-              <span class="badge bg-secondary">{{ c.status }}</span>
-            {% endif %}
-          {% else %}
-            <span class="badge bg-info">{{ c.status }}</span>
+      <div class="list-group-item mb-3 p-4 shadow-sm rounded-lg">
+        <div class="mb-3">
+          <div class="d-flex justify-content-between">
+            <div>
+              <strong>{{ c.challenger.username }}</strong>
+              {% if c.challenger.team_name %}
+              <small class="text-muted">（{{ c.challenger.team_name }}）</small>
+              {% endif %}
+            </div>
+            <div class="text-muted small">{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+          </div>
+          
+          {% if c.message %}
+          <div class="mt-2 p-2 bg-light rounded">
+            <strong>留言：</strong>{{ c.message }}
+          </div>
           {% endif %}
         </div>
-      </li>
+        
+        {% if match.owner_id == current_user.get_id()|int %}
+          {% if c.status == '待确认' %}
+            <div class="d-grid gap-2">
+              <form method="post" action="{{ url_for('confirm_challenge', challenge_id=c.id) }}">
+                <button class="btn btn-success btn-block-mobile">同意</button>
+              </form>
+              <form method="post" action="{{ url_for('reject_challenge', challenge_id=c.id) }}">
+                <button class="btn btn-outline-secondary btn-block-mobile">拒绝</button>
+              </form>
+            </div>
+          {% elif c.status == '已同意' %}
+            <div class="text-center">
+              <span class="badge bg-success p-2">已同意</span>
+            </div>
+          {% else %}
+            <div class="text-center">
+              <span class="badge bg-secondary p-2">{{ c.status }}</span>
+            </div>
+          {% endif %}
+        {% else %}
+          <div class="text-center">
+            <span class="badge bg-info p-2">{{ c.status }}</span>
+          </div>
+        {% endif %}
+      </div>
     {% endfor %}
-  </ul>
+  </div>
 {% else %}
-  <div class="text-muted">暂无约战</div>
+  <div class="text-center text-muted p-4 bg-light rounded">
+    暂无约战
+  </div>
 {% endif %}
 
 {% if current_user.is_authenticated and current_user.id != match.owner_id and match.status != '约战成功' %}
-  <a class="btn btn-primary mt-3" href="{{ url_for('make_challenge', match_id=match.id) }}">我要约战</a>
+  <div class="mt-5">
+    <a class="btn btn-primary btn-block-mobile w-100" href="{{ url_for('make_challenge', match_id=match.id) }}">我要约战</a>
+  </div>
 {% endif %}
 {% endblock %}

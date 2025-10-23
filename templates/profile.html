@@ -1,59 +1,75 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>个人资料</h3>
-<p>用户名：{{ current_user.username }}</p>
-<p>球队：{{ current_user.team_name or '-' }}</p>
-<p>联系人：{{ current_user.contact or '-' }}</p>
-<p>电话：{{ current_user.phone or '-' }}</p>
+<div class="card mb-4 shadow-sm">
+  <div class="card-body p-4">
+    <h3 class="text-center mb-4">个人资料</h3>
+    <div class="mb-3">
+      <p class="mb-2"><strong>用户名：</strong>{{ current_user.username }}</p>
+      <p class="mb-2"><strong>球队：</strong>{{ current_user.team_name or '-' }}</p>
+      <p class="mb-2"><strong>联系人：</strong>{{ current_user.contact or '-' }}</p>
+      <p class="mb-2"><strong>电话：</strong>{{ current_user.phone or '-' }}</p>
+    </div>
+  </div>
+</div>
 
-<hr>
-
-<h3>我发布的约球</h3>
-{% if user_matches %}
-    <div class="row row-cols-1 md:row-cols-2 gap-4 mb-4">
+<div class="mb-6">
+  <h3 class="text-center mb-4">我发布的约球</h3>
+  {% if user_matches %}
+    <div class="space-y-4">
     {% for match in user_matches %}
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">{{ match.team_name }}</h5>
-            <div class="card-text">
-                <p><strong>时间：</strong>{{ match.start_time }}</p>
-                <p><strong>地点：</strong>{{ match.location }}</p>
-                <p><strong>联系人：</strong>{{ match.contact }}</p>
-                <p><strong>状态：</strong><span class="badge bg-{{ 
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h5 class="card-title mb-3 text-center">{{ match.team_name }}</h5>
+            <div class="card-text mb-3">
+                <p class="mb-2"><strong>时间：</strong>{{ match.start_time }}</p>
+                <p class="mb-2"><strong>地点：</strong>{{ match.location }}</p>
+                <p class="mb-2"><strong>联系人：</strong>{{ match.contact }}</p>
+                <p class="mb-2 text-center"><strong>状态：</strong><span class="badge bg-{{ 
                     'success' if match.status == '约战成功' else 
-                    'warning' if match.status == '匹配中' else 'secondary' 
-                }}">{{ match.status }}</span></p>
+                    'warning' if match.status == '匹配中' else 
+                    'danger' if match.status == '已取消' else 'secondary' 
+                }} p-2">{{ match.status }}</span></p>
             </div>
-            <div class="mt-2">
-                <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-sm btn-primary">查看详情</a>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-primary btn-block-mobile">查看详情</a>
+                {% if match.status in ['待约战', '匹配中'] %}
+                <form method="post" action="{{ url_for('cancel_match', match_id=match.id) }}" onsubmit="return confirm('确定要取消这个约球吗？');">
+                    <button type="submit" class="btn btn-danger btn-block-mobile">取消约球</button>
+                </form>
+                {% endif %}
             </div>
         </div>
         
         <!-- 显示该约球的挑战信息 -->
         {% if match.challenges %}
-        <div class="card-footer bg-light">
-            <p class="text-sm mb-1">收到的挑战：</p>
+        <div class="card-footer bg-light p-4">
+            <p class="text-sm mb-3 font-medium">收到的挑战：</p>
             {% for challenge in match.challenges %}
-            <div class="d-flex justify-content-between align-items-center mb-1 p-2 bg-white rounded">
-                <div>
+            <div class="mb-3 p-3 bg-white rounded shadow-sm">
+                <div class="mb-2">
                     <span class="font-medium">{{ challenge.challenger.username }}</span>
                     {% if challenge.message %}
-                    <small class="text-muted d-block">{{ challenge.message }}</small>
+                    <div class="mt-2 p-2 bg-light rounded">
+                        <small class="text-muted">{{ challenge.message }}</small>
+                    </div>
                     {% endif %}
                 </div>
-                <div>
+                <div class="d-grid gap-2">
                     {% if challenge.status == '待确认' %}
-                    <form method="post" action="{{ url_for('confirm_challenge', challenge_id=challenge.id) }}" class="d-inline">
-                        <button type="submit" class="btn btn-sm btn-success me-1">同意</button>
+                    <form method="post" action="{{ url_for('confirm_challenge', challenge_id=challenge.id) }}">
+                        <button type="submit" class="btn btn-success btn-block-mobile">同意</button>
                     </form>
-                    <form method="post" action="{{ url_for('reject_challenge', challenge_id=challenge.id) }}" class="d-inline">
-                        <button type="submit" class="btn btn-sm btn-danger">拒绝</button>
+                    <form method="post" action="{{ url_for('reject_challenge', challenge_id=challenge.id) }}">
+                        <button type="submit" class="btn btn-danger btn-block-mobile">拒绝</button>
                     </form>
                     {% else %}
-                    <span class="badge bg-{{ 
-                        'success' if challenge.status == '已同意' else 
-                        'danger' if challenge.status == '已拒绝' else 'secondary' 
-                    }}">{{ challenge.status }}</span>
+                    <div class="text-center">
+                        <span class="badge bg-{{ 
+                            'success' if challenge.status == '已同意' else 
+                            'danger' if challenge.status == '已拒绝' else 
+                            'dark' if challenge.status == '已取消' else 'secondary' 
+                        }} p-2">{{ challenge.status }}</span>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -63,35 +79,41 @@
     </div>
     {% endfor %}
     </div>
-{% else %}
-    <div class="alert alert-info">您还没有发布任何约球信息</div>
-{% endif %}
+  {% else %}
+    <div class="alert alert-info text-center p-4 rounded">
+        您还没有发布任何约球信息
+    </div>
+  {% endif %}
+</div>
 
 {% if challenges_received %}
-<hr>
-<h3>待处理的挑战请求</h3>
-<div class="list-group">
+<div class="mb-6">
+  <h3 class="text-center mb-4">待处理的挑战请求</h3>
+  <div class="space-y-4">
     {% for challenge in challenges_received %}
-    <div class="list-group-item">
-        <div class="d-flex justify-content-between">
-            <div>
-                <h6>{{ challenge.challenger.username }} 挑战您的约球</h6>
-                <p class="text-sm text-muted">约球：{{ challenge.match.team_name }} - {{ challenge.match.location }}</p>
-                {% if challenge.message %}
-                <p class="text-sm">{{ challenge.message }}</p>
-                {% endif %}
-            </div>
-            <div>
-                <form method="post" action="{{ url_for('confirm_challenge', challenge_id=challenge.id) }}" class="d-inline">
-                    <button type="submit" class="btn btn-sm btn-success me-1">同意</button>
-                </form>
-                <form method="post" action="{{ url_for('reject_challenge', challenge_id=challenge.id) }}" class="d-inline">
-                    <button type="submit" class="btn btn-sm btn-danger">拒绝</button>
-                </form>
-            </div>
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h6 class="mb-3 text-center">{{ challenge.challenger.username }} 挑战您的约球</h6>
+        <div class="mb-4">
+          <p class="mb-2"><strong>约球：</strong>{{ challenge.match.team_name }} - {{ challenge.match.location }}</p>
+          {% if challenge.message %}
+          <div class="p-2 bg-light rounded">
+            <p class="text-sm">{{ challenge.message }}</p>
+          </div>
+          {% endif %}
         </div>
+        <div class="d-grid gap-2">
+          <form method="post" action="{{ url_for('confirm_challenge', challenge_id=challenge.id) }}">
+            <button type="submit" class="btn btn-success btn-block-mobile">同意</button>
+          </form>
+          <form method="post" action="{{ url_for('reject_challenge', challenge_id=challenge.id) }}">
+            <button type="submit" class="btn btn-danger btn-block-mobile">拒绝</button>
+          </form>
+        </div>
+      </div>
     </div>
     {% endfor %}
+  </div>
 </div>
 {% endif %}
 {% endblock %}
