@@ -2,7 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
+from sqlalchemy import text
 import os
 
 app = Flask(__name__)
@@ -59,6 +60,16 @@ class Message(db.Model):
     
     user = db.relationship('User', backref='messages')
 
+class PageVisit(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    path = db.Column(db.String(255), nullable=False)  # 访问路径
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # 访问用户ID（匿名用户为None）
+    ip_address = db.Column(db.String(45), nullable=True)  # IP地址
+    user_agent = db.Column(db.String(255), nullable=True)  # 浏览器信息
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 访问时间
+    
+    user = db.relationship('User', backref='visits')
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -74,6 +85,23 @@ def create_tables():
         with app.app_context():
             db.create_all()
         tables_created = True
+
+@app.before_request
+def track_page_visits():
+    # 不记录静态文件和管理页面的访问
+    if request.path.startswith('/static/') or request.path == '/admin':
+        return
+    
+    # 记录访问信息
+    user_id = current_user.id if current_user.is_authenticated else None
+    visit = PageVisit(
+        path=request.path,
+        user_id=user_id,
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent', '')[:255]  # 限制长度
+    )
+    db.session.add(visit)
+    # 不在这里commit，让请求结束时自动提交
 
 def create_message(user_id, content):
     """创建新消息"""
@@ -259,6 +287,44 @@ def reject_challenge(challenge_id):
     flash('已拒绝该约战', 'info')
     return redirect(url_for('match_detail', match_id=match.id))
 
+@app.route('/match/<int:match_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_match(match_id):
+    match = Match.query.get_or_404(match_id)
+    # 只有约球发起人可以修改
+    if match.owner_id != current_user.id:
+        flash('只有约球发起人可以修改约球', 'danger')
+        return redirect(url_for('match_detail', match_id=match_id))
+    
+    # 只有待约战状态的约球可以修改
+    if match.status != '待约战':
+        flash('只有待约战状态的约球可以修改', 'danger')
+        return redirect(url_for('match_detail', match_id=match_id))
+    
+    # 查询用户的未读消息数量
+    unread_messages = Message.query.filter_by(user_id=current_user.id, is_read=False).count()
+    
+    if request.method == 'POST':
+        team_name = request.form['team_name']
+        start_time = request.form['start_time']
+        location = request.form['location']
+
+        if not (team_name and start_time and location):
+            flash('请填写必填项', 'danger')
+            return redirect(url_for('edit_match', match_id=match_id))
+        
+        # 更新约球信息
+        match.team_name = team_name
+        match.start_time = start_time
+        match.location = location
+        match.contact = current_user.contact or current_user.username
+        
+        db.session.commit()
+        flash('约球信息已更新', 'success')
+        return redirect(url_for('match_detail', match_id=match_id))
+    
+    return render_template('edit.html', match=match, unread_messages=unread_messages)
+
 @app.route('/match/<int:match_id>/cancel', methods=['POST'])
 @login_required
 def cancel_match(match_id):
@@ -280,6 +346,43 @@ def cancel_match(match_id):
     db.session.commit()
     flash('约球已成功取消', 'success')
     return redirect(url_for('profile'))
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    # 查询用户的未读消息数量
+    unread_messages = Message.query.filter_by(user_id=current_user.id, is_read=False).count()
+    
+    if request.method == 'POST':
+        team_name = request.form['team_name'].strip()
+        contact = request.form['contact'].strip()
+        phone = request.form['phone'].strip()
+        new_password = request.form['new_password'].strip()
+        confirm_password = request.form['confirm_password'].strip()
+
+        # 基本信息验证
+        if not (team_name and contact and phone):
+            flash('所有必填字段不能为空', 'danger')
+            return redirect(url_for('edit_profile'))
+
+        # 密码验证（如果用户填写了密码）
+        if new_password:
+            if new_password != confirm_password:
+                flash('两次输入的密码不一致', 'danger')
+                return redirect(url_for('edit_profile'))
+            # 更新密码
+            current_user.password_hash = generate_password_hash(new_password)
+
+        # 更新用户信息
+        current_user.team_name = team_name
+        current_user.contact = contact
+        current_user.phone = phone
+
+        db.session.commit()
+        flash('个人信息已更新', 'success')
+        return redirect(url_for('profile'))
+    
+    return render_template('edit_profile.html', unread_messages=unread_messages)
 
 @app.route('/profile')
 @login_required
@@ -337,20 +440,6 @@ def admin_panel():
         flash('您没有权限访问此页面', 'danger')
         return redirect(url_for('index'))
     
-    # 查询所有用户、约球和挑战
-    users = User.query.all()
-    matches = Match.query.all()
-    challenges = Challenge.query.all()
-    
-    # 统计未读消息数量
-    unread_messages = Message.query.filter_by(is_read=False).count()
-    
-    return render_template('admin.html', 
-                          users=users,
-                          matches=matches,
-                          challenges=challenges,
-                          unread_messages=unread_messages)
-    
     # 查询所有用户、约球和挑战数据
     users = User.query.all()
     matches = Match.query.order_by(Match.created_at.desc()).all()
@@ -359,7 +448,55 @@ def admin_panel():
     # 查询用户的未读消息数量
     unread_messages = Message.query.filter_by(user_id=current_user.id, is_read=False).count()
     
-    return render_template('admin.html', users=users, matches=matches, challenges=challenges, unread_messages=unread_messages)
+    # 统计访问数据
+    total_visits = PageVisit.query.count()
+    unique_visitors = PageVisit.query.distinct(PageVisit.ip_address).count()
+    
+    # 今日访问量
+    today = datetime.utcnow().date()
+    today_visits = PageVisit.query.filter(db.func.date(PageVisit.created_at) == today).count()
+    
+    # 最近7天的访问趋势
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    recent_visits = db.session.query(
+        db.func.date(PageVisit.created_at).label('date'),
+        db.func.count(PageVisit.id).label('count')
+    ).filter(
+        PageVisit.created_at >= seven_days_ago
+    ).group_by(
+        db.func.date(PageVisit.created_at)
+    ).order_by('date').all()
+    
+    # 热门页面统计
+    popular_pages = db.session.query(
+        PageVisit.path,
+        db.func.count(PageVisit.id).label('count')
+    ).group_by(
+        PageVisit.path
+    ).order_by(text('count desc')).limit(10).all()
+    
+    # 活跃用户统计（按访问次数）
+    active_users = db.session.query(
+        User.username,
+        User.team_name,
+        db.func.count(PageVisit.id).label('visit_count')
+    ).join(
+        PageVisit, User.id == PageVisit.user_id
+    ).group_by(
+        User.id
+    ).order_by(text('visit_count desc')).limit(10).all()
+    
+    return render_template('admin.html', 
+                          users=users,
+                          matches=matches,
+                          challenges=challenges,
+                          unread_messages=unread_messages,
+                          total_visits=total_visits,
+                          unique_visitors=unique_visitors,
+                          today_visits=today_visits,
+                          recent_visits=recent_visits,
+                          popular_pages=popular_pages,
+                          active_users=active_users)
 
 if __name__ == '__main__':
     print("Starting Flask application...")

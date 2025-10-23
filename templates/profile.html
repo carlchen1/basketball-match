@@ -9,6 +9,9 @@
       <p class="mb-2"><strong>联系人：</strong>{{ current_user.contact or '-' }}</p>
       <p class="mb-2"><strong>电话：</strong>{{ current_user.phone or '-' }}</p>
     </div>
+    <div class="text-center">
+      <a href="{{ url_for('edit_profile') }}" class="btn btn-secondary">修改资料</a>
+    </div>
   </div>
 </div>
 
@@ -32,6 +35,9 @@
             </div>
             <div class="d-grid gap-2">
                 <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-primary btn-block-mobile">查看详情</a>
+                {% if match.status == '待约战' %}
+                <a href="{{ url_for('edit_match', match_id=match.id) }}" class="btn btn-secondary btn-block-mobile">修改约球</a>
+                {% endif %}
                 {% if match.status in ['待约战', '匹配中'] %}
                 <form method="post" action="{{ url_for('cancel_match', match_id=match.id) }}" onsubmit="return confirm('确定要取消这个约球吗？');">
                     <button type="submit" class="btn btn-danger btn-block-mobile">取消约球</button>

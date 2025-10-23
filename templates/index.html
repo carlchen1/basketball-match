@@ -16,6 +16,7 @@
       <div class="mb-3">
         <p class="mb-2"><strong>发起人：</strong>{{ m.owner.username }}</p>
         <p class="mb-2"><strong>联系方式：</strong>{{ m.contact }}</p>
+        <p class="mb-2"><strong>电话：</strong>{{ m.owner.phone or '未提供' }}</p>
         <p class="mb-2"><strong>时间：</strong>{{ m.start_time }}</p>
       </div>
       <div class="mb-3 text-center">

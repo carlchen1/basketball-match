@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-md mx-auto mb-6">
+  <h3 class="text-center mb-5">修改个人信息</h3>
+  <form method="post">
+    <div class="mb-4">
+      <label class="form-label">用户名</label>
+      <input class="form-control p-3" value="{{ current_user.username }}" disabled>
+    </div>
+    <div class="mb-4">
+      <label class="form-label">球队名称 *</label>
+      <input class="form-control p-3" name="team_name" required value="{{ current_user.team_name or '' }}">
+    </div>
+    <div class="mb-4">
+      <label class="form-label">联系人 *</label>
+      <input class="form-control p-3" name="contact" required value="{{ current_user.contact or '' }}">
+    </div>
+    <div class="mb-4">
+      <label class="form-label">电话 *</label>
+      <input class="form-control p-3" name="phone" required value="{{ current_user.phone or '' }}">
+    </div>
+    <hr class="my-5">
+    <div class="mb-4">
+      <label class="form-label">新密码 (不修改请留空)</label>
+      <input class="form-control p-3" name="new_password" type="password">
+    </div>
+    <div class="mb-5">
+      <label class="form-label">确认新密码</label>
+      <input class="form-control p-3" name="confirm_password" type="password">
+    </div>
+    <button class="btn btn-primary btn-block-mobile w-100 p-3">保存修改</button>
+  </form>
+</div>
+{% endblock %}

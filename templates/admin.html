@@ -1,145 +1,398 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container">
-  <h2 class="text-center mb-5">管理员面板</h2>
+<div class="container-fluid px-2">
+  <h2 class="text-center my-4">管理员面板</h2>
   
-  <!-- 用户管理 -->
-  <div class="card shadow-sm mb-5">
-    <div class="card-header bg-primary text-white">
-      <h3 class="mb-0">用户管理</h3>
+  <!-- 统计概览 -->
+  <div class="row mb-4">
+    <div class="col-4 mb-2">
+      <div class="card bg-primary text-white text-center">
+        <div class="card-body">
+          <div class="h3">{{ users|length }}</div>
+          <div class="small">用户总数</div>
+        </div>
+      </div>
     </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>用户名</th>
-              <th>球队名称</th>
-              <th>联系人</th>
-              <th>联系电话</th>
-              <th>是否管理员</th>
-              <th>注册时间</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for user in users %}
-            <tr>
-              <td>{{ user.id }}</td>
-              <td>{{ user.username }}</td>
-              <td>{{ user.team_name or '-' }}</td>
-              <td>{{ user.contact or '-' }}</td>
-              <td>{{ user.phone or '-' }}</td>
-              <td>
-                {% if user.is_admin %}
-                <span class="badge bg-success">是</span>
+    <div class="col-4 mb-2">
+      <div class="card bg-success text-white text-center">
+        <div class="card-body">
+          <div class="h3">{{ matches|length }}</div>
+          <div class="small">约球总数</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-4 mb-2">
+      <div class="card bg-warning text-white text-center">
+        <div class="card-body">
+          <div class="h3">{{ challenges|length }}</div>
+          <div class="small">挑战总数</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 访问统计卡片 -->
+    <div class="col-4 mb-2">
+      <div class="card bg-info text-white text-center">
+        <div class="card-body">
+          <div class="h3">{{ total_visits }}</div>
+          <div class="small">总访问量</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-4 mb-2">
+      <div class="card bg-purple text-white text-center">
+        <div class="card-body">
+          <div class="h3">{{ unique_visitors }}</div>
+          <div class="small">独立访客</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-4 mb-2">
+      <div class="card bg-red text-white text-center">
+        <div class="card-body">
+          <div class="h3">{{ today_visits }}</div>
+          <div class="small">今日访问</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 访问统计标签页 -->
+  <div class="mb-4">
+    <div class="overflow-x-auto">
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats-tab-pane" type="button" role="tab" aria-controls="stats-tab-pane" aria-selected="true">访问统计</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-tab-pane" type="button" role="tab" aria-controls="users-tab-pane" aria-selected="false">用户管理</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches-tab-pane" type="button" role="tab" aria-controls="matches-tab-pane" aria-selected="false">约球管理</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="challenges-tab" data-bs-toggle="tab" data-bs-target="#challenges-tab-pane" type="button" role="tab" aria-controls="challenges-tab-pane" aria-selected="false">挑战管理</button>
+        </li>
+      </ul>
+    </div>
+  </div>
+  
+  <!-- 标签页内容 -->
+  <div class="tab-content">
+    <!-- 访问统计 -->
+    <div class="tab-pane fade show active" id="stats-tab-pane" role="tabpanel" aria-labelledby="stats-tab">
+      <!-- 访问趋势 -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+          <h3 class="mb-0 fs-5">最近7天访问趋势</h3>
+        </div>
+        <div class="card-body">
+          <div class="overflow-x-auto">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr class="table-dark">
+                  <th class="p-2">日期</th>
+                  <th class="p-2">访问次数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for visit in recent_visits %}
+                <tr>
+                  <td class="p-2">{{ visit.date }}</td>
+                  <td class="p-2">{{ visit.count }}</td>
+                </tr>
                 {% else %}
-                <span class="badge bg-secondary">否</span>
-                {% endif %}
-              </td>
-              <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                <tr>
+                  <td colspan="2" class="text-center p-3">暂无访问数据</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 热门页面 -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-purple text-white">
+          <h3 class="mb-0 fs-5">热门页面TOP10</h3>
+        </div>
+        <div class="card-body">
+          <div class="overflow-x-auto">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr class="table-dark">
+                  <th class="p-2">排名</th>
+                  <th class="p-2">页面路径</th>
+                  <th class="p-2">访问次数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for page in popular_pages %}
+                <tr>
+                  <td class="p-2">{{ loop.index }}</td>
+                  <td class="p-2">{{ page.path }}</td>
+                  <td class="p-2">{{ page.count }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="3" class="text-center p-3">暂无页面访问数据</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 活跃用户 -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-red text-white">
+          <h3 class="mb-0 fs-5">活跃用户TOP10</h3>
+        </div>
+        <div class="card-body">
+          <div class="overflow-x-auto">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr class="table-dark">
+                  <th class="p-2">排名</th>
+                  <th class="p-2">用户名</th>
+                  <th class="p-2">球队名称</th>
+                  <th class="p-2">访问次数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in active_users %}
+                <tr>
+                  <td class="p-2">{{ loop.index }}</td>
+                  <td class="p-2">{{ user.username }}</td>
+                  <td class="p-2">{{ user.team_name or '-' }}</td>
+                  <td class="p-2">{{ user.visit_count }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="4" class="text-center p-3">暂无用户访问数据</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+  
+    <!-- 用户管理 -->
+    <div class="tab-pane fade" id="users-tab-pane" role="tabpanel" aria-labelledby="users-tab">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0 fs-5">用户管理</h3>
+        </div>
+        <div class="card-body p-0">
+          <div class="overflow-x-auto">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr class="table-dark">
+                  <th class="p-2">ID</th>
+                  <th class="p-2">用户名</th>
+                  <th class="p-2">球队名称</th>
+                  <th class="p-2">联系人</th>
+                  <th class="p-2">电话</th>
+                  <th class="p-2">管理员</th>
+                  <th class="p-2">注册时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr>
+                  <td class="p-2">{{ user.id }}</td>
+                  <td class="p-2">{{ user.username }}</td>
+                  <td class="p-2">{{ user.team_name or '-' }}</td>
+                  <td class="p-2">{{ user.contact or '-' }}</td>
+                  <td class="p-2">{{ user.phone or '-' }}</td>
+                  <td class="p-2">
+                    {% if user.is_admin %}
+                    <span class="badge bg-success">是</span>
+                    {% else %}
+                    <span class="badge bg-secondary">否</span>
+                    {% endif %}
+                  </td>
+                  <td class="p-2 small">{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="7" class="text-center p-3">暂无用户数据</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 约球管理 -->
+    <div class="tab-pane fade" id="matches-tab-pane" role="tabpanel" aria-labelledby="matches-tab">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0 fs-5">约球管理</h3>
+        </div>
+        <div class="card-body p-0">
+          <div class="overflow-x-auto">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr class="table-dark">
+                  <th class="p-2">ID</th>
+                  <th class="p-2">发布球队</th>
+                  <th class="p-2">联系人</th>
+                  <th class="p-2">时间</th>
+                  <th class="p-2">场地</th>
+                  <th class="p-2">状态</th>
+                  <th class="p-2">发布人</th>
+                  <th class="p-2">发布时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for match in matches %}
+                <tr>
+                  <td class="p-2">{{ match.id }}</td>
+                  <td class="p-2">{{ match.team_name }}</td>
+                  <td class="p-2">{{ match.contact }}</td>
+                  <td class="p-2">{{ match.start_time }}</td>
+                  <td class="p-2">{{ match.location }}</td>
+                  <td class="p-2">
+                    {% if match.status == '待约战' %}
+                    <span class="badge bg-secondary">待约战</span>
+                    {% elif match.status == '匹配中' %}
+                    <span class="badge bg-warning">匹配中</span>
+                    {% elif match.status == '约战成功' %}
+                    <span class="badge bg-success">约战成功</span>
+                    {% elif match.status == '已取消' %}
+                    <span class="badge bg-danger">已取消</span>
+                    {% endif %}
+                  </td>
+                  <td class="p-2">{{ match.owner.username }}</td>
+                  <td class="p-2 small">{{ match.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="8" class="text-center p-3">暂无约球数据</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 挑战管理 -->
+    <div class="tab-pane fade" id="challenges-tab-pane" role="tabpanel" aria-labelledby="challenges-tab">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0 fs-5">挑战管理</h3>
+        </div>
+        <div class="card-body p-0">
+          <div class="overflow-x-auto">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr class="table-dark">
+                  <th class="p-2">ID</th>
+                  <th class="p-2">约球ID</th>
+                  <th class="p-2">约球球队</th>
+                  <th class="p-2">挑战者</th>
+                  <th class="p-2">留言</th>
+                  <th class="p-2">状态</th>
+                  <th class="p-2">挑战时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for challenge in challenges %}
+                <tr>
+                  <td class="p-2">{{ challenge.id }}</td>
+                  <td class="p-2">{{ challenge.match_id }}</td>
+                  <td class="p-2">{{ challenge.match.team_name }}</td>
+                  <td class="p-2">{{ challenge.challenger.username }}</td>
+                  <td class="p-2 small" style="max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ challenge.message or '-' }}</td>
+                  <td class="p-2">
+                    {% if challenge.status == '待确认' %}
+                    <span class="badge bg-secondary">待确认</span>
+                    {% elif challenge.status == '已同意' %}
+                    <span class="badge bg-success">已同意</span>
+                    {% elif challenge.status == '已拒绝' %}
+                    <span class="badge bg-danger">已拒绝</span>
+                    {% elif challenge.status == '已取消' %}
+                    <span class="badge bg-warning">已取消</span>
+                    {% endif %}
+                  </td>
+                  <td class="p-2 small">{{ challenge.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="7" class="text-center p-3">暂无挑战数据</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
   
-  <!-- 约球管理 -->
-  <div class="card shadow-sm mb-5">
-    <div class="card-header bg-primary text-white">
-      <h3 class="mb-0">约球管理</h3>
-    </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>发布球队</th>
-              <th>联系人</th>
-              <th>开始时间</th>
-              <th>场地</th>
-              <th>状态</th>
-              <th>发布人</th>
-              <th>发布时间</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for match in matches %}
-            <tr>
-              <td>{{ match.id }}</td>
-              <td>{{ match.team_name }}</td>
-              <td>{{ match.contact }}</td>
-              <td>{{ match.start_time }}</td>
-              <td>{{ match.location }}</td>
-              <td>
-                {% if match.status == '待约战' %}
-                <span class="badge bg-secondary">待约战</span>
-                {% elif match.status == '匹配中' %}
-                <span class="badge bg-warning">匹配中</span>
-                {% elif match.status == '约战成功' %}
-                <span class="badge bg-success">约战成功</span>
-                {% elif match.status == '已取消' %}
-                <span class="badge bg-danger">已取消</span>
-                {% endif %}
-              </td>
-              <td>{{ match.owner.username }}</td>
-              <td>{{ match.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  
-  <!-- 挑战管理 -->
-  <div class="card shadow-sm mb-5">
-    <div class="card-header bg-primary text-white">
-      <h3 class="mb-0">挑战管理</h3>
-    </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>约球ID</th>
-              <th>约球球队</th>
-              <th>挑战者</th>
-              <th>留言</th>
-              <th>状态</th>
-              <th>挑战时间</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for challenge in challenges %}
-            <tr>
-              <td>{{ challenge.id }}</td>
-              <td>{{ challenge.match_id }}</td>
-              <td>{{ challenge.match.team_name }}</td>
-              <td>{{ challenge.challenger.username }}</td>
-              <td>{{ challenge.message or '-' }}</td>
-              <td>
-                {% if challenge.status == '待确认' %}
-                <span class="badge bg-secondary">待确认</span>
-                {% elif challenge.status == '已同意' %}
-                <span class="badge bg-success">已同意</span>
-                {% elif challenge.status == '已拒绝' %}
-                <span class="badge bg-danger">已拒绝</span>
-                {% elif challenge.status == '已取消' %}
-                <span class="badge bg-warning">已取消</span>
-                {% endif %}
-              </td>
-              <td>{{ challenge.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <!-- 响应式提示 -->
+  <div class="text-center text-muted text-sm mt-4 mb-2">
+    <p>可左右滑动查看完整表格内容</p>
   </div>
 </div>
+
+<style>
+/* 自定义颜色类 */
+.bg-purple {
+  background-color: #6f42c1;
+}
+
+.bg-red {
+  background-color: #dc3545;
+}
+
+.bg-info {
+  background-color: #17a2b8;
+}
+
+/* 响应式调整 */
+@media (max-width: 576px) {
+  h2 {
+    font-size: 1.5rem;
+  }
+  .card-header h3 {
+    font-size: 1.1rem;
+  }
+  .table {
+    font-size: 0.9rem;
+  }
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.3em 0.5em;
+  }
+  .nav-link {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.9rem;
+  }
+  .h3 {
+    font-size: 1.3rem;
+  }
+}
+
+/* 改善表格在小屏幕上的显示 */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* 确保标签页按钮在小屏幕上也能水平滚动 */
+.nav-tabs {
+  flex-wrap: nowrap;
+}
+</style>
 {% endblock %}

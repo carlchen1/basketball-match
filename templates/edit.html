@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-md mx-auto mb-6">
+  <h3 class="text-center mb-5">修改约球</h3>
+  <form method="post">
+    <div class="mb-4">
+      <label class="form-label">球队名称</label>
+      <input class="form-control p-3" name="team_name" required value="{{ match.team_name }}">
+    </div>
+    <div class="mb-4">
+      <label class="form-label">开始时间</label>
+      <input class="form-control p-3" name="start_time" type="datetime-local" required value="{{ match.start_time }}">
+    </div>
+    <div class="mb-5">
+      <label class="form-label">场地</label>
+      <input class="form-control p-3" name="location" required value="{{ match.location }}">
+    </div>
+    <button class="btn btn-primary btn-block-mobile w-100 p-3">更新</button>
+  </form>
+</div>
+{% endblock %}
