@@ -21,6 +21,7 @@ class User(UserMixin, db.Model):
     team_name = db.Column(db.String(128), nullable=True)
     contact = db.Column(db.String(64), nullable=True)
     phone = db.Column(db.String(32), nullable=True)
+    is_admin = db.Column(db.Boolean, default=False)  # 管理员标志
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def check_password(self, password):
@@ -102,20 +103,24 @@ def register():
         contact = request.form.get('contact', '').strip()
         phone = request.form.get('phone', '').strip()
 
-        if not username or not password:
-            flash('用户名和密码为必填项', 'danger')
+        if not username or not password or not team_name or not contact or not phone:
+            flash('所有字段为必填项', 'danger')
             return redirect(url_for('register'))
 
         if User.query.filter_by(username=username).first():
             flash('用户名已存在，请换一个', 'warning')
             return redirect(url_for('register'))
 
+        # 检查是否是第一个注册用户，如果是则自动设为管理员
+        is_first_user = User.query.count() == 0
+        
         user = User(
             username=username,
             password_hash=generate_password_hash(password),
             team_name=team_name,
             contact=contact,
-            phone=phone
+            phone=phone,
+            is_admin=is_first_user  # 第一个用户自动成为管理员
         )
         db.session.add(user)
         db.session.commit()
@@ -323,6 +328,38 @@ def mark_all_messages_read():
     db.session.commit()
     flash('所有消息已标记为已读', 'success')
     return redirect(url_for('messages'))
+
+@app.route('/admin')
+@login_required
+def admin_panel():
+    # 检查用户是否为管理员
+    if not current_user.is_admin:
+        flash('您没有权限访问此页面', 'danger')
+        return redirect(url_for('index'))
+    
+    # 查询所有用户、约球和挑战
+    users = User.query.all()
+    matches = Match.query.all()
+    challenges = Challenge.query.all()
+    
+    # 统计未读消息数量
+    unread_messages = Message.query.filter_by(is_read=False).count()
+    
+    return render_template('admin.html', 
+                          users=users,
+                          matches=matches,
+                          challenges=challenges,
+                          unread_messages=unread_messages)
+    
+    # 查询所有用户、约球和挑战数据
+    users = User.query.all()
+    matches = Match.query.order_by(Match.created_at.desc()).all()
+    challenges = Challenge.query.order_by(Challenge.created_at.desc()).all()
+    
+    # 查询用户的未读消息数量
+    unread_messages = Message.query.filter_by(user_id=current_user.id, is_read=False).count()
+    
+    return render_template('admin.html', users=users, matches=matches, challenges=challenges, unread_messages=unread_messages)
 
 if __name__ == '__main__':
     print("Starting Flask application...")

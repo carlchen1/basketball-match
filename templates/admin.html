@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <h2 class="text-center mb-5">管理员面板</h2>
+  
+  <!-- 用户管理 -->
+  <div class="card shadow-sm mb-5">
+    <div class="card-header bg-primary text-white">
+      <h3 class="mb-0">用户管理</h3>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>用户名</th>
+              <th>球队名称</th>
+              <th>联系人</th>
+              <th>联系电话</th>
+              <th>是否管理员</th>
+              <th>注册时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>{{ user.id }}</td>
+              <td>{{ user.username }}</td>
+              <td>{{ user.team_name or '-' }}</td>
+              <td>{{ user.contact or '-' }}</td>
+              <td>{{ user.phone or '-' }}</td>
+              <td>
+                {% if user.is_admin %}
+                <span class="badge bg-success">是</span>
+                {% else %}
+                <span class="badge bg-secondary">否</span>
+                {% endif %}
+              </td>
+              <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 约球管理 -->
+  <div class="card shadow-sm mb-5">
+    <div class="card-header bg-primary text-white">
+      <h3 class="mb-0">约球管理</h3>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>发布球队</th>
+              <th>联系人</th>
+              <th>开始时间</th>
+              <th>场地</th>
+              <th>状态</th>
+              <th>发布人</th>
+              <th>发布时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for match in matches %}
+            <tr>
+              <td>{{ match.id }}</td>
+              <td>{{ match.team_name }}</td>
+              <td>{{ match.contact }}</td>
+              <td>{{ match.start_time }}</td>
+              <td>{{ match.location }}</td>
+              <td>
+                {% if match.status == '待约战' %}
+                <span class="badge bg-secondary">待约战</span>
+                {% elif match.status == '匹配中' %}
+                <span class="badge bg-warning">匹配中</span>
+                {% elif match.status == '约战成功' %}
+                <span class="badge bg-success">约战成功</span>
+                {% elif match.status == '已取消' %}
+                <span class="badge bg-danger">已取消</span>
+                {% endif %}
+              </td>
+              <td>{{ match.owner.username }}</td>
+              <td>{{ match.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 挑战管理 -->
+  <div class="card shadow-sm mb-5">
+    <div class="card-header bg-primary text-white">
+      <h3 class="mb-0">挑战管理</h3>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>约球ID</th>
+              <th>约球球队</th>
+              <th>挑战者</th>
+              <th>留言</th>
+              <th>状态</th>
+              <th>挑战时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for challenge in challenges %}
+            <tr>
+              <td>{{ challenge.id }}</td>
+              <td>{{ challenge.match_id }}</td>
+              <td>{{ challenge.match.team_name }}</td>
+              <td>{{ challenge.challenger.username }}</td>
+              <td>{{ challenge.message or '-' }}</td>
+              <td>
+                {% if challenge.status == '待确认' %}
+                <span class="badge bg-secondary">待确认</span>
+                {% elif challenge.status == '已同意' %}
+                <span class="badge bg-success">已同意</span>
+                {% elif challenge.status == '已拒绝' %}
+                <span class="badge bg-danger">已拒绝</span>
+                {% elif challenge.status == '已取消' %}
+                <span class="badge bg-warning">已取消</span>
+                {% endif %}
+              </td>
+              <td>{{ challenge.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
