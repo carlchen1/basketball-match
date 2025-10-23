@@ -12,12 +12,15 @@
 {% for m in matches %}
   <div class="card mb-4 shadow-sm">
     <div class="card-body p-4">
-      <h5 class="card-title mb-2 text-center">{{ m.team_name }} <small class="text-muted">（{{ m.location }}）</small></h5>
+      <h5 class="card-title mb-2 text-center">约球队伍：{{ m.team_name }}</h5>
       <div class="mb-3">
         <p class="mb-2"><strong>发起人：</strong>{{ m.owner.username }}</p>
         <p class="mb-2"><strong>联系方式：</strong>{{ m.contact }}</p>
         <p class="mb-2"><strong>电话：</strong>{{ m.owner.phone or '未提供' }}</p>
         <p class="mb-2"><strong>时间：</strong>{{ m.start_time }}</p>
+        <p class="mb-2"><strong>场地：</strong>{{ m.location }}</p>
+        <p class="mb-2"><strong>球队实力：</strong>{{ m.team_strength or '未设置' }}</p>
+        <p class="mb-2"><strong>创建时间：</strong>{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
       </div>
       <div class="mb-3 text-center">
         状态：

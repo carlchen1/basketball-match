@@ -34,6 +34,7 @@ class Match(db.Model):
     contact = db.Column(db.String(64), nullable=False)
     start_time = db.Column(db.String(64), nullable=False)
     location = db.Column(db.String(128), nullable=False)
+    team_strength = db.Column(db.String(32), nullable=True)  # 球队实力
     status = db.Column(db.String(32), default='待约战')
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -194,6 +195,7 @@ def create_match():
         team_name = request.form['team_name']
         start_time = request.form['start_time']
         location = request.form['location']
+        team_strength = request.form.get('team_strength', '')
 
         if not (team_name and start_time and location):
             flash('请填写必填项', 'danger')
@@ -204,6 +206,7 @@ def create_match():
             contact=current_user.contact or current_user.username,
             start_time=start_time,
             location=location,
+            team_strength=team_strength,
             owner=current_user
         )
         db.session.add(m)
@@ -308,6 +311,7 @@ def edit_match(match_id):
         team_name = request.form['team_name']
         start_time = request.form['start_time']
         location = request.form['location']
+        team_strength = request.form.get('team_strength', '')
 
         if not (team_name and start_time and location):
             flash('请填写必填项', 'danger')
@@ -318,6 +322,7 @@ def edit_match(match_id):
         match.start_time = start_time
         match.location = location
         match.contact = current_user.contact or current_user.username
+        match.team_strength = team_strength
         
         db.session.commit()
         flash('约球信息已更新', 'success')

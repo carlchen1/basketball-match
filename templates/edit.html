@@ -15,6 +15,16 @@
       <label class="form-label">场地</label>
       <input class="form-control p-3" name="location" required value="{{ match.location }}">
     </div>
+    <div class="mb-5">
+      <label class="form-label">球队实力</label>
+      <select class="form-control p-3" name="team_strength">
+        <option value="" {% if match.team_strength == '' %}selected{% endif %}>请选择球队实力</option>
+        <option value="新手" {% if match.team_strength == '新手' %}selected{% endif %}>新手</option>
+        <option value="业余" {% if match.team_strength == '业余' %}selected{% endif %}>业余</option>
+        <option value="半专业" {% if match.team_strength == '半专业' %}selected{% endif %}>半专业</option>
+        <option value="专业" {% if match.team_strength == '专业' %}selected{% endif %}>专业</option>
+      </select>
+    </div>
     <button class="btn btn-primary btn-block-mobile w-100 p-3">更新</button>
   </form>
 </div>
