@@ -1,19 +1,38 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 import os
+import logging
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
-# 优先使用环境变量中的DATABASE_URL（Render上的PostgreSQL），本地开发时使用SQLite
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///match_auth.db')
-# 修复Render上PostgreSQL URL格式的问题
-if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
-    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
+
+# 确保使用正确的数据库配置
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    # 修复Render上PostgreSQL URL格式的问题
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    logger.info(f"Using PostgreSQL database from DATABASE_URL: {DATABASE_URL[:20]}...")
+else:
+    DATABASE_URL = 'sqlite:///match_auth.db'
+    logger.info("Using SQLite database for local development")
+    
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# 为PostgreSQL添加连接池配置，确保连接稳定性
+app.config['SQLALCHEMY_POOL_SIZE'] = 5
+app.config['SQLALCHEMY_MAX_OVERFLOW'] = 10
+app.config['SQLALCHEMY_POOL_TIMEOUT'] = 30
+app.config['SQLALCHEMY_POOL_RECYCLE'] = 1800  # 30分钟，避免连接超时
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -87,9 +106,14 @@ tables_created = False
 def create_tables():
     global tables_created
     if not tables_created:
-        with app.app_context():
-            db.create_all()
-        tables_created = True
+        try:
+            with app.app_context():
+                logger.info("Creating database tables if they don't exist")
+                db.create_all()
+                logger.info("Database tables creation completed")
+            tables_created = True
+        except SQLAlchemyError as e:
+            logger.error(f"Error creating database tables: {str(e)}")
 
 @app.before_request
 def track_page_visits():
@@ -97,22 +121,58 @@ def track_page_visits():
     if request.path.startswith('/static/') or request.path == '/admin':
         return
     
-    # 记录访问信息
-    user_id = current_user.id if current_user.is_authenticated else None
-    visit = PageVisit(
-        path=request.path,
-        user_id=user_id,
-        ip_address=request.remote_addr,
-        user_agent=request.headers.get('User-Agent', '')[:255]  # 限制长度
-    )
-    db.session.add(visit)
-    # 不在这里commit，让请求结束时自动提交
+    try:
+        # 记录访问信息
+        user_id = current_user.id if current_user.is_authenticated else None
+        visit = PageVisit(
+            path=request.path,
+            user_id=user_id,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent', '')[:255]  # 限制长度
+        )
+        db.session.add(visit)
+    except SQLAlchemyError as e:
+        logger.error(f"Error tracking page visit: {str(e)}")
+        db.session.rollback()
 
 def create_message(user_id, content):
     """创建新消息"""
-    message = Message(user_id=user_id, content=content)
-    db.session.add(message)
-    return message
+    try:
+        message = Message(user_id=user_id, content=content)
+        db.session.add(message)
+        db.session.commit()
+        logger.info(f"Message created for user {user_id}")
+        return message
+    except SQLAlchemyError as e:
+        logger.error(f"Error creating message: {str(e)}")
+        db.session.rollback()
+        return None
+
+# 添加一个请求结束后的钩子，确保数据库会话正确关闭
+@app.teardown_request
+def teardown_request(exception):
+    if hasattr(g, 'db_session'):
+        try:
+            if exception:
+                g.db_session.rollback()
+            else:
+                g.db_session.commit()
+        except SQLAlchemyError as e:
+            logger.error(f"Error during teardown: {str(e)}")
+        finally:
+            g.db_session.close()
+
+# 添加应用上下文处理器，提供数据库连接状态信息
+@app.context_processor
+def inject_db_status():
+    try:
+        # 测试数据库连接
+        result = db.session.execute(text('SELECT 1'))
+        db_status = 'Connected'
+    except SQLAlchemyError:
+        db_status = 'Disconnected'
+    
+    return dict(db_status=db_status, db_type='PostgreSQL' if DATABASE_URL.startswith('postgresql://') else 'SQLite')
 
 @app.route('/')
 def index():
@@ -508,12 +568,20 @@ def admin_panel():
                           active_users=active_users)
 
 if __name__ == '__main__':
-    print("Starting Flask application...")
+    logger.info("Starting Flask application...")
+    
+    # 确保在生产环境中不使用debug模式
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
+    
     # 手动创建数据库表
     with app.app_context():
-        print("Creating database tables...")
-        db.create_all()
-        print("Database tables created.")
+        try:
+            logger.info("Creating database tables...")
+            db.create_all()
+            logger.info("Database tables created.")
+        except SQLAlchemyError as e:
+            logger.error(f"Error creating database tables: {str(e)}")
+    
     port = int(os.environ.get('PORT', 5000))
-    print(f"Starting server on port {port}...")
-    app.run(host='0.0.0.0', port=port, debug=True)
+    logger.info(f"Starting server on port {port} (debug={debug_mode})...")
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
